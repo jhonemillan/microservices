@@ -1,98 +1,123 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Fin-Freelancer
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A client and invoice management system designed for freelancers, built on a robust and scalable microservice architecture. This project serves as an advanced case study for software design patterns, inter-service communication, and resilience in a cloud-native environment.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+***
 
-## Description
+## 🏛️ Architectural Overview
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This project is built using a **microservice architecture** with principles inspired by **Domain-Driven Design (DDD)**. Each microservice represents a "Bounded Context" with clear, well-defined responsibilities, promoting high cohesion and low coupling.
 
-## Project setup
+Inter-service communication is handled via **synchronous (HTTP)** calls, protected by resilience patterns, and is prepared for **asynchronous (event-based)** communication through Apache Kafka.
 
-```bash
-$ npm install
-```
+#### Container Diagram (C4 Model)
+*[A C4 Container Diagram generated with PlantUML would go here]*
 
-## Compile and run the project
+The general flow is as follows: a client (web/mobile app) communicates with the microservices through a conceptual API Gateway. The services collaborate with each other over an internal Docker network.
 
-```bash
-# development
-$ npm run start
+### Microservices
 
-# watch mode
-$ npm run start:dev
+* **`identity-ms`**:
+    * **Responsibility:** Authentication and Authorization (AuthN/AuthZ).
+    * **Functionality:** User registration, login, JSON Web Token (JWT) generation, and logout.
+    * **Details:** Implements a secure logout strategy using a token **blocklist in Redis**, ensuring that invalidated tokens cannot be reused.
 
-# production mode
-$ npm run start:prod
-```
+* **`billing-ms`**:
+    * **Responsibility:** Invoice Management.
+    * **Functionality:** Full CRUD for invoices, associated with a user and a client.
+    * **Details:** Implements a **Circuit Breaker** (using `opossum`) in its communication with the `clients-ms` to ensure resilience and prevent cascading failures.
 
-## Run tests
+* **`clients-ms`**:
+    * **Responsibility:** Client Management.
+    * **Functionality:** Full CRUD for a user's client portfolio.
+    * **Details:** Acts as a supporting service for other domains, validating the existence of clients.
 
-```bash
-# unit tests
-$ npm run test
+### Shared Infrastructure
+* **`PostgreSQL`**: Acts as the primary relational database, shared by the microservices (in a real production environment, a database-per-service pattern would be considered).
+* **`Redis`**: High-speed in-memory database used to manage the JWT blocklist for the logout flow.
+* **`Kafka` & `Zookeeper`**: Event streaming platform, set up for asynchronous communication in future features like payment confirmations.
 
-# e2e tests
-$ npm run test:e2e
+***
 
-# test coverage
-$ npm run test:cov
-```
+## 🛠️ Technology Stack
 
-## Deployment
+* **Backend:** Node.js, TypeScript, NestJS
+* **Architecture:** Microservices, DDD, Resilience Patterns (Circuit Breaker)
+* **Database:** PostgreSQL (with TypeORM), Redis
+* **Messaging:** Apache Kafka
+* **Authentication:** JWT (JSON Web Tokens), Passport.js
+* **Containerization:** Docker, Docker Compose
+* **Key Libraries:** `@nestjs/axios`, `opossum`, `class-validator`
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+***
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## 🚀 Getting Started
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+### Prerequisites
+- Node.js (v20+)
+- Docker and Docker Compose
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Installation and Execution
+1.  Clone the repository.
+2.  Create a copy of the environment configuration file (we haven't created this yet, but it's good practice to mention it):
+    ```bash
+    cp .env.example .env 
+    ```
+3.  Install Node.js dependencies from the project root:
+    ```bash
+    npm install
+    ```
+4.  Launch the entire environment with Docker Compose:
+    ```bash
+    docker-compose up --build
+    ```
+The system will be available on the following ports:
+- **identity-ms**: `http://localhost:3001`
+- **billing-ms**: `http://localhost:3002`
+- **clients-ms**: `http://localhost:3003`
 
-## Resources
+***
 
-Check out a few resources that may come in handy when working with NestJS:
+## 📋 API Endpoints
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Identity Service (`:3001`)
+| Method | Route | Protected? | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/auth/register` | No | Registers a new user. |
+| `POST` | `/auth/login` | No | Authenticates a user and returns a JWT. |
+| `POST` | `/auth/logout` | Yes | Invalidates the current JWT by adding it to the blocklist. |
+| `GET` | `/auth/profile` | Yes | Returns the authenticated user's profile. |
 
-## Support
+### Billing Service (`:3002`)
+| Method | Route | Protected? | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/invoices` | Yes | Creates a new invoice for a client. |
+| `GET` | `/invoices` | Yes | Gets all of the user's invoices. |
+| `GET` | `/invoices/:id` | Yes | Gets a specific invoice. |
+| `PATCH` | `/invoices/:id` | Yes | Updates an invoice. |
+| `DELETE`| `/invoices/:id` | Yes | Deletes an invoice. |
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Clients Service (`:3003`)
+| Method | Route | Protected? | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/clients` | Yes | Creates a new client. |
+| `GET` | `/clients` | Yes | Gets all of the user's clients. |
+| `GET` | `/clients/:id` | Yes | Gets a specific client. |
+| `PATCH` | `/clients/:id` | Yes | Updates a client. |
+| `DELETE`| `/clients/:id` | Yes | Deletes a client. |
 
-## Stay in touch
+***
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## 🎨 Implemented Architectural Patterns
 
-## License
+* **Monorepo Strategy:** The code is organized in a monorepo managed by the NestJS CLI, allowing for code reuse through shared libraries (`libs/common`) for components like Guards and Strategies.
+* **Centralized & Distributed Authentication:** While the `identity-ms` is the sole creator of tokens, each microservice can validate them independently by sharing the `JwtStrategy`.
+* **Resilience with Circuit Breaker:** Critical synchronous communication (from `billing-ms` to `clients-ms`) is protected to prevent the unavailability of one service from affecting another.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+***
+
+## 🔮 Roadmap (Next Steps)
+
+* **Sprint 4:** Implementation of the `payments-ms` and webhook logic with Kafka.
+* **Sprint 5:** Creation of the `analytics-ms` using a CQRS pattern for a high-performance dashboard.
+* **Sprint 6:** Deployment of the architecture to AWS using Infrastructure as Code (Terraform/CDK).
