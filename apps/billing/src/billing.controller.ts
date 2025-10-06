@@ -13,13 +13,13 @@ export class BillingController {
   @UsePipes(new ValidationPipe())
   create(@Body() createInvoiceDto: CreateInvoiceDto, @Req() req: any) {
     const userId = req.user.id;
-    return this.billingService.create(createInvoiceDto, userId);
+    const token = req.headers.authorization; 
+    return this.billingService.create(createInvoiceDto, userId, token);
   }
 
   @Get()
   findAll(@Req() req: any) {
-    console.log('--- Fetching invoices for user ---');
-    const userId = '00000000-0000-0000-0000-000000000000'; // TODO: Obtener de req.user.id
+    const userId = req.user.id
     return this.billingService.findAllForUser(userId);
   }
 

@@ -63,6 +63,10 @@ services:
     ports:
       - "3003:3000"
     environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=secreto
+      - JWT_EXPIRATION=1d
       - PORT=3000
       - DB_HOST=postgres-db
       - DB_PORT=5432

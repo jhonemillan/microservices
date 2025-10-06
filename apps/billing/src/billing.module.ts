@@ -9,10 +9,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard, JwtStrategy } from '@app/common';
 import { redisStore } from 'cache-manager-redis-store';
 import { CacheModule } from '@nestjs/cache-manager';
+import { HttpModule } from '@nestjs/axios';
 
 
 @Module({
   imports: [
+    HttpModule,
     ConfigModule.forRoot({ isGlobal: true, envFilePath: './apps/billing/.env' }),
     PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.registerAsync({

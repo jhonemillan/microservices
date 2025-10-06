@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsUUID, Min } from 'class-validator';
 
 export class CreateInvoiceDto {
   @IsString()
@@ -8,4 +8,8 @@ export class CreateInvoiceDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   amount: number;
+
+  @IsUUID()
+  @IsNotEmpty()
+  clientId: string;
 }

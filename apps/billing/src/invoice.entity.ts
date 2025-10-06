@@ -31,6 +31,9 @@ export class Invoice {
   // Esta columna es crucial. Vincula la factura con el usuario que la creó.
   @Column()
   userId: string;
+
+  @Column() 
+  clientId: string;
   
   // TypeORM llenará estas columnas automáticamente.
   @CreateDateColumn()

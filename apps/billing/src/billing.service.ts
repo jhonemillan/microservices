@@ -1,19 +1,45 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Invoice } from './invoice.entity';
 import { Repository } from 'typeorm';
 import { CreateInvoiceDto } from './create-invoice.dto';
 import { UpdateInvoiceDto } from './update-invoice.dto';
+import Opossum = require('opossum')
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class BillingService {
+  private circuitBreaker: Opossum;
   constructor(
     // Inyectamos el repositorio para poder interactuar con la tabla 'invoice'
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
-  ) {}
+    private readonly httpService: HttpService,
+  ) {
+    const searchClient = async (clientId: string, userId: string, token: string) => 
+        firstValueFrom(
+            this.httpService.get(`http://clients:3000/clients/${clientId}`, {
+                headers: { Authorization: token },
+            }),
+        );
 
-  create(createInvoiceDto: CreateInvoiceDto, userId: string): Promise<Invoice> {
+    // Opciones del Circuit Breaker
+    const options: Opossum.Options = {
+      timeout: 3000, // Si la llamada tarda más de 3s, cuenta como fallo
+      errorThresholdPercentage: 50, // Si el 50% de las últimas peticiones fallan, abre el circuito
+      resetTimeout: 30000, // Después de 30s, intenta cerrar el circuito de nuevo
+    };
+
+    this.circuitBreaker = new Opossum(searchClient, options);
+  }
+
+  async create(createInvoiceDto: CreateInvoiceDto, userId: string, token: string): Promise<Invoice> {
+    try {
+      await this.circuitBreaker.fire(createInvoiceDto.clientId, userId, token);
+    } catch (error) {
+      throw new BadRequestException(`Client with ID "${createInvoiceDto.clientId}" not found or client service is down.`);
+    }
     const invoice = this.invoiceRepository.create({
       ...createInvoiceDto,
       userId,
