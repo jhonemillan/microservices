@@ -1,0 +1,104 @@
+# docker-compose.yml (Versión 2)
+version: '3.8'
+
+services:
+  # Microservicio de Identidad
+  identity:
+    build:
+      context: .
+      dockerfile: Dockerfile.identity
+    command: npm run start:dev identity
+    volumes: # <-- ESTE es el que añadimos para sincronizar el código
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3001:3000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=secreto
+      - JWT_EXPIRATION=1d
+      - PORT=3000
+      - DB_HOST=postgres-db # El nombre del servicio de la DB
+      - DB_PORT=5432
+      - DB_USER=admin
+      - DB_PASSWORD=desarrollo
+      - DB_NAME=identity_db
+    depends_on:
+      - postgres-db # Le dice a Docker que inicie la DB primero
+      - redis
+
+  # Microservicio de Facturación
+  billing:
+    build:
+      context: .
+      dockerfile: Dockerfile.billing
+    command: npm run start:dev billing
+    volumes: # <-- ESTE es el que añadimos para sincronizar el código
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3002:3000"
+    environment:
+      - PORT=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=secreto
+      - JWT_EXPIRATION=1d
+      - PORT=3000
+      - DB_HOST=postgres-db # El nombre del servicio de la DB
+      - DB_PORT=5432
+      - DB_USER=admin
+      - DB_PASSWORD=desarrollo
+      - DB_NAME=identity_db
+    depends_on:
+      - postgres-db # Le dice a Docker que inicie la DB primero
+      - redis
+
+  clients:
+    build:
+      context: .
+      dockerfile: Dockerfile.clients # Usará un nuevo Dockerfile
+    command: npm run start:dev clients
+    ports:
+      - "3003:3000"
+    environment:
+      - PORT=3000
+      - DB_HOST=postgres-db
+      - DB_PORT=5432
+      - DB_USER=admin
+      - DB_PASSWORD=desarrollo
+      - DB_NAME=identity_db # Usaremos la misma DB por simplicidad
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - postgres-db
+
+  # Servicio de Base de Datos PostgreSQL
+  postgres-db:
+    image: postgres:15-alpine # Usamos una imagen oficial y ligera de Postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=desarrollo
+      - POSTGRES_DB=identity_db
+      - DB_PORT=5432
+      - DB_HOST=postgres-db
+    ports:
+      - "5432:5432" # Exponemos el puerto para poder conectarnos desde fuera si es necesario
+    volumes:
+      - postgres-data:/var/lib/postgresql/data # Persistimos los datos
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  postgres-data: # Este volumen asegura que no perdamos los datos de la DB al reiniciar los contenedores
+  redis-data: # Volumen para persistir datos de Redis
+  

@@ -1,0 +1,38 @@
+# Dockerfile.identity (Versión Mejorada)
+
+# --- ETAPA 1: BUILD ---
+# Esta etapa instala TODAS las dependencias (incluyendo las de desarrollo)
+# y construye nuestra aplicación.
+FROM node:18-alpine AS build
+
+WORKDIR /usr/src/app
+
+# Copia los archivos de definición de dependencias
+COPY package*.json ./
+
+# Instala todas las dependencias
+RUN npm install
+
+# Copia todo el código fuente
+COPY . .
+
+# Construye la aplicación específica 'identity'
+RUN npm run build identity
+
+
+# --- ETAPA 2: PRODUCTION ---
+# Esta etapa crea la imagen final, súper ligera, solo con lo necesario para correr.
+FROM node:20-alpine AS production
+
+WORKDIR /usr/src/app
+
+# Copia las dependencias de producción desde la etapa de 'build'
+# Esto es más rápido y seguro que reinstalar.
+COPY --from=build /usr/src/app/package*.json ./
+COPY --from=build /usr/src/app/node_modules ./node_modules
+
+# Copia el código compilado de nuestra app desde la etapa de 'build'
+COPY --from=build /usr/src/app/dist/apps/identity ./dist
+
+# El comando para iniciar la aplicación
+CMD ["node", "dist/main.js"]
