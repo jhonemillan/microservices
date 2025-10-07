@@ -55,6 +55,22 @@ services:
       - postgres-db # Le dice a Docker que inicie la DB primero
       - redis
 
+  payments:
+    build:
+      context: .
+      dockerfile: Dockerfile.payments
+    command: npm run start:dev payments
+    ports:
+      - "3004:3000"
+    environment:
+      - PORT=3000
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - kafka
+
+  # Microservicio de Clientes
   clients:
     build:
       context: .
@@ -101,6 +117,30 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka
+    ports:
+      # Puerto para comunicación externa (desde tu máquina)
+      - "9092:9092"
+    depends_on:
+      - zookeeper # Kafka no arrancará hasta que Zookeeper esté listo
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
 volumes:
   postgres-data: # Este volumen asegura que no perdamos los datos de la DB al reiniciar los contenedores

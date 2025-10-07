@@ -3,6 +3,7 @@ import { BillingService } from './billing.service';
 import { CreateInvoiceDto } from './create-invoice.dto';
 import { UpdateInvoiceDto } from './update-invoice.dto';
 import { JwtAuthGuard } from '@app/common';
+import { EventPattern, Payload } from '@nestjs/microservices';
 
 @Controller('invoices')
 @UseGuards(JwtAuthGuard)
@@ -45,5 +46,11 @@ export class BillingController {
   @Get()
   getHello(): string {
     return this.billingService.getHello();
+  }
+
+  @EventPattern('payment.processed')
+  handlePaymentProcessed(@Payload() message: any) {
+    console.log('BillingController: Received payment.processed event', message);
+    this.billingService.updateInvoiceStatus(message);
   }
 }

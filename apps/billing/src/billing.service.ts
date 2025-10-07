@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Invoice } from './invoice.entity';
+import { Invoice, InvoiceStatus } from './invoice.entity';
 import { Repository } from 'typeorm';
 import { CreateInvoiceDto } from './create-invoice.dto';
 import { UpdateInvoiceDto } from './update-invoice.dto';
@@ -79,5 +79,18 @@ export class BillingService {
   
   getHello(): string {
     return 'Hello World!';
+  }
+
+  async updateInvoiceStatus(paymentData: { invoiceId: string; status: string }) {
+    const invoice = await this.invoiceRepository.findOneBy({ id: paymentData.invoiceId });
+
+    if (!invoice) {
+      console.error(`Invoice with ID ${paymentData.invoiceId} not found.`);
+      return;
+    }
+
+    invoice.status = InvoiceStatus.PAID;
+    await this.invoiceRepository.save(invoice);
+    console.log(`Invoice ${invoice.id} status updated to PAID.`);
   }
 }
